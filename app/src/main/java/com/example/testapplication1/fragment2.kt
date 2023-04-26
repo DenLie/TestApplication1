@@ -7,19 +7,19 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.webkit.WebView
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.fragment.app.Fragment
-import java.io.ByteArrayOutputStream
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
+
 
 @Suppress("DEPRECATION")
 class fragment2 : Fragment() {
     lateinit var IV : ImageView
     lateinit var Tcite: TextView
-    lateinit var bitmap: Bitmap
-
+    lateinit var mViewModel: MainViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -31,26 +31,18 @@ class fragment2 : Fragment() {
 
         var prevBTN: Button =view.findViewById(R.id.b2)
         val camera: Button =view.findViewById(R.id.camera)
-        val bundle = getArguments()
         IV = view.findViewById(R.id.imageView)//изображение для фото
-        IV.setImageBitmap(bundle?.getParcelable("bitmap"))
         val button: Button = view.findViewById(R.id.cite)//кнопка сайта
-
         Tcite = view.findViewById(R.id.textView3)//текст сайта!!!
-        Tcite.setText(bundle?.getString("text").toString())
-
-        val webView : WebView = view.findViewById(R.id.web)
-        webView.loadUrl("https://ru.stackoverflow.com/")//сайт с которого берутся данные
 
         button.setOnClickListener {//при нажатии на кнопку сайта
-            Tcite.setText(webView.title)
+            mViewModel.GetTitle()//запуск функции из ViewModel
         }
 
+
         prevBTN.setOnClickListener{
-            /*val fragment= fragment1()//меняются фрагменты
-            val transaction=parentFragmentManager.beginTransaction()
-            transaction.replace(R.id.nav_container,fragment).commit()//замена фрагмента*/
-            getAndSave()
+            //getBack()
+            (activity as MainActivity).navController.navigate(R.id.action_fragment2_to_fragment1)
         }
 
         camera.setOnClickListener{//камера
@@ -60,24 +52,27 @@ class fragment2 : Fragment() {
 
         return view
     }
+
+    override fun onStart() {
+        super.onStart()
+        mViewModel = ViewModelProvider(requireActivity())[MainViewModel::class.java]
+        mViewModel.title.observe(this, Observer {//подписываемся на ViewModel.title
+            Tcite.text = it
+        })
+        mViewModel.photo.observe(this, Observer {//подписываемся на ViewModel.photo
+            IV.setImageBitmap(it)
+        })
+    }
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        bitmap = data?.getExtras()?.get("data") as Bitmap
-        IV.setImageBitmap(bitmap)
-        //frag1?.setData(bitmap)
-        //f1.pimage.setImageBitmap(bitmap)//дублирую изображение
+        val thumbnailBitmap = data?.extras?.get("data") as Bitmap
+        //IV.setImageBitmap(thumbnailBitmap)
+        mViewModel.GetSaveImage(thumbnailBitmap)
     }
-    fun getAndSave() {
-        val bundle = Bundle()
-        // сохраняем аргументы
-        bundle.putString("text", Tcite.text.toString())
-        try{
-            bundle.putParcelable("bitmap", bitmap)
-
-        }        catch (e: Exception){}
+    /*fun getBack() {
+        // возврат на предыдущий фрагмент
         val frag1 = fragment1()
-        frag1.setArguments(bundle)
         val transaction=parentFragmentManager.beginTransaction()
         transaction.replace(R.id.nav_container,frag1).commit()//замена фрагмента
-    }
+    }*/
 }
